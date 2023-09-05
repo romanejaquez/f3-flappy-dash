@@ -198,6 +198,17 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                 // ),
               ),
             )
+          
+            ,
+            
+            GestureDetector(
+              onTap: () {
+                triggerJump();
+              },
+              child: Container(
+                color: Colors.transparent,
+              ),
+            )
           ],
         ),
       ),

@@ -27,13 +27,13 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
   @override
   Widget build(BuildContext context) {
 
-    ref.watch(flappyDashProvider(() {
-      final state = ref.read(flappyStateProvider);
-      if (state == FlappyStates.init) {
-        ref.read(flappyStateProvider.notifier).state = FlappyStates.game;
-        GoRouter.of(context).go('/game');
-      }
-    }));
+    // ref.watch(flappyDashProvider(() {
+    //   final state = ref.read(flappyStateProvider);
+    //   if (state == FlappyStates.init) {
+    //     ref.read(flappyStateProvider.notifier).state = FlappyStates.game;
+    //     GoRouter.of(context).go('/game');
+    //   }
+    // }));
 
     return Scaffold(
       body: Stack(
@@ -105,6 +105,18 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
             ),
           ),
 
+          Positioned(
+            top: 0,
+            left: 0,
+            right: (MediaQuery.sizeOf(context).width / 2) * -1,
+            bottom: (MediaQuery.sizeOf(context).height / 2) * -1,
+            child: Align(
+              child: Container(
+                margin: const EdgeInsets.only(top: 100, right: 200),
+                child: FlutterDashWave()),
+            ),
+          ),
+
           Center(
             child: Container(
               margin: const EdgeInsets.only(right: 200, bottom: 200),
@@ -139,38 +151,33 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
                       ],
                     ),
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(
-                      left: 50, top: 20),
-                    child: SvgPicture.asset(
-                      './assets/imgs/startbtn.svg',
+                  GestureDetector(
+                    onTap: () {
+                      GoRouter.of(context).go('/game');
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(
+                        left: 50, top: 20),
+                      child: SvgPicture.asset(
+                        './assets/imgs/startbtn.svg',
+                      ),
+                    ).animate(
+                      onComplete: (ctrl) {
+                        ctrl.repeat(reverse: true);
+                      }
+                    )
+                    .scaleXY(
+                      begin: 1, end: 1.125,
+                      duration: 1.seconds,
+                      curve: Curves.easeInOut,
                     ),
-                  ).animate(
-                    onComplete: (ctrl) {
-                      ctrl.repeat(reverse: true);
-                    }
-                  )
-                  .scaleXY(
-                    begin: 1, end: 1.125,
-                    duration: 1.seconds,
-                    curve: Curves.easeInOut,
                   ),
                 ],
               ),
             ),
           ),
           
-          Positioned(
-            top: 0,
-            left: 0,
-            right: (MediaQuery.sizeOf(context).width / 2) * -1,
-            bottom: (MediaQuery.sizeOf(context).height / 2) * -1,
-            child: Align(
-              child: Container(
-                margin: const EdgeInsets.only(top: 100, right: 200),
-                child: FlutterDashWave()),
-            ),
-          )
+          
         ],
       ),
     );
