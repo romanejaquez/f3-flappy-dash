@@ -1,16 +1,19 @@
 import 'dart:async';
+import 'dart:html';
 import 'dart:math';
 
 import 'package:flappy_dash/providers.dart';
 import 'package:flappy_dash/utils.dart';
 import 'package:flappy_dash/widgets/flappy_bg_gradient.dart';
 import 'package:flappy_dash/widgets/flappy_dash_bg.dart';
+import 'package:flappy_dash/widgets/flutter_dash_white.dart';
 import 'package:flappy_dash/widgets/flutter_game_dash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class FlappyDashMain extends ConsumerStatefulWidget {
 
@@ -30,11 +33,15 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   int yPos = 0;
   int itemHeight = 0;
   Timer difficultyTimer = Timer(Duration.zero, () {});
+  Timer gameTimer = Timer(Duration.zero, () {});
   int secondsIncrement = 4000;
-
+  int birdSpeedIncrement = 1000;
+  int birdSpeedReverse = 500;
+  bool gameElementsVisible = true;
 
   double? bottomPos = 0;
   double? topPos;
+
 
   @override
   void initState() {
@@ -46,22 +53,12 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       randomizeYPos();
     });
 
-    difficultyTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    startGameTimer();
 
-      if (secondsIncrement == 1000) {
-        timer.cancel();
-        return;
-      }
-
-      secondsIncrement = secondsIncrement - 100;
-
-      if (ctrl != null) {
-        ctrl!.duration = Duration(milliseconds: secondsIncrement);
-      }
-    });
+    startDifficultyTimer();
 
     side2SideCtrl = AnimationController(vsync: this,
-      duration: const Duration(seconds: 1),
+      duration: Duration(milliseconds: birdSpeedIncrement),
     )..forward();
 
     ctrl!.addListener(onCheckForCollision);
@@ -79,6 +76,16 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
     ));
   }
 
+  void startGameTimer() {
+    gameTimer = Timer.periodic(const Duration(milliseconds: 1), (timer) {
+      
+      var dt = DateTime(2023,0,0,0,0,0,timer.tick);
+
+      ref.read(gameTimerProvider.notifier).state = 
+        '${DateFormat('mm').format(dt)}:${DateFormat('ss').format(dt)}:${(dt.millisecond).toStringAsFixed(0)}';
+    });
+  }
+
   void randomizeYPos() {
     setState(() {
       final rand = Random();
@@ -87,6 +94,28 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       final pos = rand.nextInt(2);
       bottomPos = pos == 0 ? 0 : null;
       topPos = pos == 1 ? 0 : null;
+    });
+  }
+
+  void startDifficultyTimer() {
+    difficultyTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+
+      if (secondsIncrement == 1000) {
+        timer.cancel();
+        return;
+      }
+
+      secondsIncrement = secondsIncrement - 100;
+
+      if (ctrl != null) {
+        ctrl!.duration = Duration(milliseconds: secondsIncrement);
+      }
+
+      birdSpeedIncrement = birdSpeedIncrement - 10;
+
+      if (side2SideCtrl != null) {
+        side2SideCtrl!.duration = Duration(milliseconds: birdSpeedIncrement);
+      }
     });
   }
 
@@ -102,6 +131,8 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
     return WillPopScope(
       onWillPop:() {
+
+        ref.read(livesStateProvider.notifier).state = 3;
         ref.read(flappyStateProvider.notifier).state = FlappyStates.init;
         return Future.value(true);
       },
@@ -128,10 +159,45 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
             ),
 
             Align(
+              alignment: Alignment.topRight,
+              child: Consumer(builder: (context, ref, child) {
+                  return Padding(
+                    padding: const EdgeInsets.all(50),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 150, height: 150,
+                          child: FlutterDashWhite()),
+                        Text(ref.watch(livesStateProvider).toString(),
+                          style: TextStyle(fontSize: 100, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  );
+              },),
+            ),
+
+            Align(
               alignment: Alignment.topLeft,
               child: Consumer(builder: (context, ref, child) {
-                  return Text(ref.watch(livesStateProvider).toString(),
-                    style: TextStyle(fontSize: 50),
+                  return Container(
+                    padding: const EdgeInsets.all(30),
+                    margin: const EdgeInsets.all(30),
+                    width: 400,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.timelapse_outlined, color: Colors.white, size: 50),
+                        SizedBox(width: 10),
+                        Text(ref.watch(gameTimerProvider).toString(),
+                          style: TextStyle(fontSize: 50, color: Colors.white),
+                        ),
+                      ],
+                    ),
                   );
               },),
             ),
@@ -160,46 +226,47 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
             
             Align(
               alignment: Alignment.centerLeft,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: Offset(0, -1),
-                  end: Offset(0, 1),
-                ).animate(CurvedAnimation(parent: side2SideCtrl!, curve: Curves.easeInOut)),
-                child: Container(
-                  margin: EdgeInsets.only(left: MediaQuery.sizeOf(context).width * 0.25),
-                  width: 250,
-                  height: 280,
-                  child: Stack(
-                    children: [
-                      const FlutterGameDash(),
-                      Center(
-                        child: Container(
-                          key: square2,
-                          width: 180,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(150)
+              child: Visibility(
+                visible: gameElementsVisible,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, -1),
+                    end: const Offset(0, 1),
+                  ).animate(CurvedAnimation(parent: side2SideCtrl!, curve: Curves.easeInOut)),
+                  child: Container(
+                    margin: EdgeInsets.only(left: MediaQuery.sizeOf(context).width * 0.25),
+                    width: 250,
+                    height: 280,
+                    child: Stack(
+                      children: [
+                        const FlutterGameDash(),
+                        Center(
+                          child: Container(
+                            key: square2,
+                            width: 180,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(150)
+                            ),
                           ),
-                        ),
-                      )
-                    ],
+                        )
+                      ],
+                    )
                   )
-                )
-                // .animate(
-                //   onComplete: (ctrl) {
-                //     ctrl.repeat(reverse: true);
-                //   }
-                // )
-                // .slideY(
-                //   begin: 0, end: 0.25,
-                //   duration: 1.seconds,
-                //   curve: Curves.easeInOut,
-                // ),
+                  .animate(
+                    onComplete: (ctrl) {
+                      ctrl.repeat(reverse: true);
+                    }
+                  )
+                  .slideY(
+                    begin: 0, end: 0.25,
+                    duration: 1.seconds,
+                    curve: Curves.easeInOut,
+                  ),
+                ),
               ),
-            )
-          
-            ,
+            ),
             
             GestureDetector(
               onTap: () {
@@ -207,6 +274,85 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
               },
               child: Container(
                 color: Colors.transparent,
+              ),
+            ),
+
+            Positioned.fill(
+              child: Visibility(
+                visible: !gameElementsVisible,
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                  alignment: Alignment.center,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Color(0xFFFFDF7D),
+                        borderRadius: BorderRadius.circular(50)
+                      ),
+                      padding: EdgeInsets.all(100),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.thumb_up, color: Color(0xFFB1540F), size: 100)
+                              .animate(
+                                onComplete: (controller) {
+                                  controller.repeat(reverse: true);
+                                },
+                              ).rotate(
+                                begin: 0.0125, end: 0.08,
+                                duration: 1.seconds,
+                                curve: Curves.easeInOut,
+                              ),
+                              SizedBox(width: 20),
+                              Text('Nicely Done!', style: TextStyle(fontSize: 120, color: Color(0xFFB1540F))),
+                            ],
+                          ),
+                          Text('You lasted', style: TextStyle(fontSize: 90, color: Color(0xFFBA7B33))),
+                          Text(ref.read(gameTimerProvider), style: TextStyle(fontSize: 100, color: Colors.black)),
+                          SizedBox(height: 40),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFFB1540F),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                                  elevation: 0,
+                                  shadowColor: Colors.transparent,
+                                  padding: EdgeInsets.all(50)
+                                ),
+                                onPressed: () {
+                                  restartGame();
+                                }, 
+                                child: Text('Try Again', style: TextStyle(fontSize: 50, color: Colors.white)),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    ).animate(
+                      onComplete:(controller) {
+                        controller.repeat(reverse: true);
+                      },
+                    )
+                    .scaleXY(
+                      begin: 1, end: 1.05,
+                      duration: 1.seconds,
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+                ).animate()
+                .fadeIn(
+                  duration: 0.25.seconds,
+                  curve: Curves.easeInOut,
+                ),
               ),
             )
           ],
@@ -217,7 +363,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   void triggerJump() {
     if (side2SideCtrl != null) {
-      side2SideCtrl!.reverseDuration = const Duration(milliseconds: 500);
+      side2SideCtrl!.reverseDuration = Duration(milliseconds: birdSpeedReverse);
       side2SideCtrl!.reverse().then((value) {
         side2SideCtrl!.forward();
       });
@@ -260,13 +406,37 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
     }
   }
 
+  void restartGame() {
+    
+    ref.read(livesStateProvider.notifier).state = 3;
+
+    setState(() {
+      gameElementsVisible = true;
+      secondsIncrement = 4000;
+      birdSpeedIncrement = 1000;  
+    });
+
+    side2SideCtrl!.forward();
+    
+    startGameTimer();
+    startDifficultyTimer();
+    startThings();
+  }
+
   void resetThings() {
 
-    if (ref.read(livesStateProvider) == 0) {
+    if (ref.read(livesStateProvider) <= 0) {
       ctrl!.removeListener(onCheckForCollision);
       ctrl!.reset();
       wasReset = true;
+      side2SideCtrl!.reset();
       ref.read(flappyStateProvider.notifier).state = FlappyStates.restart;
+      gameTimer.cancel();
+      difficultyTimer.cancel();
+
+      setState(() {
+        gameElementsVisible = false;
+      });
     }
     else {
       ctrl!.removeListener(onCheckForCollision);
@@ -283,8 +453,17 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       ctrl!.addListener(onCheckForCollision);
       wasReset = false;
     }
-
     
     ctrl!.forward();
+  }
+
+  @override
+  void dispose() {
+    ctrl!.dispose();
+    side2SideCtrl!.dispose();
+    gameTimer.cancel();
+    difficultyTimer.cancel();
+
+    super.dispose();
   }
 }

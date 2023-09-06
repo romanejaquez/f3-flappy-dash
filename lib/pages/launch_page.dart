@@ -142,11 +142,14 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
                           duration: 4.seconds,
                           curve: Curves.easeInOut,
                         ),
-                        const Align(
+                        Align(
                           alignment: Alignment.bottomRight,
                           child: Opacity(
                             opacity: 0.5,
-                            child: FlutterDashWhite())
+                            child: FlutterDashWhite(
+                              birdWidth: 250,
+                              birdHeight: 250,
+                            ))
                         )
                       ],
                     ),

@@ -26,3 +26,7 @@ final livesStateProvider = StateProvider<int>((ref) {
 final flappyStateProvider = StateProvider<FlappyStates>((ref) {
   return FlappyStates.init;
 });
+
+final gameTimerProvider = StateProvider<String>((ref) {
+  return "00:00";
+});

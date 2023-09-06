@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 
 class FlutterDashWhite extends StatefulWidget {
-  const FlutterDashWhite({super.key});
+
+  double? birdWidth;
+  double? birdHeight;
+  
+  FlutterDashWhite({
+    this.birdHeight,
+    this.birdWidth,
+    super.key});
 
   @override
   State<FlutterDashWhite> createState() => _FlutterDashWhiteState();
@@ -42,8 +49,8 @@ class _FlutterDashWhiteState extends State<FlutterDashWhite> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 250,
-      height: 250,
+      width: widget.birdWidth,
+      height: widget.birdHeight,
       child: anim,
     );
   }
