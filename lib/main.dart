@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flappy_dash/models/flappydashgamestatus.model.dart';
+import 'package:flappy_dash/pages/flappy_dash_ctrl.dart';
 import 'package:flappy_dash/pages/flappy_dash_main.dart';
 import 'package:flappy_dash/pages/launch_page.dart';
 import 'package:flappy_dash/providers.dart';
@@ -65,6 +67,12 @@ class AppRoutes {
         path: '/game',
         builder: (context, state) {
             return const FlappyDashMain();
+        },
+      ),
+      GoRoute(
+        path: '/ctrl',
+        builder: (context, state) {
+            return const FlappyDashCtrl();
         },
       ),
     ]

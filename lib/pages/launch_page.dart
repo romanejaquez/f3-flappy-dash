@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flappy_dash/models/flappydashgamestatus.model.dart';
 import 'package:flappy_dash/pages/flappy_dash_main.dart';
 import 'package:flappy_dash/providers.dart';
 import 'package:flappy_dash/utils.dart';
@@ -22,18 +24,22 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
   @override
   void initState() {
     super.initState();
+    
+    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+      'status': FlappyDashGameStatus.startScreen.name,
+      'timestamp': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
   }
 
   @override
   Widget build(BuildContext context) {
 
-    // ref.watch(flappyDashProvider(() {
-    //   final state = ref.read(flappyStateProvider);
-    //   if (state == FlappyStates.init) {
-    //     ref.read(flappyStateProvider.notifier).state = FlappyStates.game;
-    //     GoRouter.of(context).go('/game');
-    //   }
-    // }));
+    ref.read(flappyDashGameStatusProvider((FlappyDashGameStatusModel gameStatus) {
+      if (gameStatus.status == FlappyDashGameStatus.inGame) {
+          GoRouter.of(context).go('/game');
+        }
+      }
+    ));
 
     return Scaffold(
       body: Stack(

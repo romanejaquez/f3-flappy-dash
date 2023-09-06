@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:html';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flappy_dash/models/flappydashgamestatus.model.dart';
 import 'package:flappy_dash/providers.dart';
 import 'package:flappy_dash/utils.dart';
 import 'package:flappy_dash/widgets/flappy_bg_gradient.dart';
@@ -41,6 +43,8 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   double? bottomPos = 0;
   double? topPos;
+  String topImgPath = 'blue';
+  String bottomImgPath = 'green';
 
 
   @override
@@ -63,14 +67,25 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
     ctrl!.addListener(onCheckForCollision);
 
+    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+      'status': FlappyDashGameStatus.inGame.name,
+      'timestamp': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+
     ref.read(flappyDashProvider(() {
-        final state = ref.read(flappyStateProvider);
-        if (state == FlappyStates.game) {
-          triggerJump();
+        triggerJump();
+      }
+    ));
+
+    ref.read(flappyDashGameStatusProvider((FlappyDashGameStatusModel gameStatus) {
+        
+        if (gameStatus.status == FlappyDashGameStatus.tryAgain) {
+          setState(() {
+            restartGame();
+          });
         }
-        else if (state == FlappyStates.restart) {
-          ref.read(livesStateProvider.notifier).state = 3;
-          GoRouter.of(context).go('/');
+        else if (gameStatus.status == FlappyDashGameStatus.backHome) {
+          onBackHomeGo();
         }
       }
     ));
@@ -89,11 +104,14 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   void randomizeYPos() {
     setState(() {
       final rand = Random();
-      //yPos = rand.nextInt(itemHeight) + 1;
 
       final pos = rand.nextInt(2);
       bottomPos = pos == 0 ? 0 : null;
       topPos = pos == 1 ? 0 : null;
+
+      final imgRand = rand.nextInt(2);
+      topImgPath = imgRand == 0 ? 'blue' : 'pink';
+      bottomImgPath = imgRand == 1 ? 'green' : 'purple';
     });
   }
 
@@ -133,10 +151,10 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       onWillPop:() {
 
         ref.read(livesStateProvider.notifier).state = 3;
-        ref.read(flappyStateProvider.notifier).state = FlappyStates.init;
         return Future.value(true);
       },
       child: Scaffold(
+        backgroundColor: Colors.black,
         body: Stack(
           children: [
             const FlappyBgGradient(),
@@ -170,7 +188,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                           width: 150, height: 150,
                           child: FlutterDashWhite()),
                         Text(ref.watch(livesStateProvider).toString(),
-                          style: TextStyle(fontSize: 100, color: Colors.white),
+                          style: TextStyle(fontSize: 140, color: Colors.white),
                         ),
                       ],
                     ),
@@ -217,7 +235,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                   width: 200, 
                   height: (MediaQuery.sizeOf(context).height / 2) - 100,
                   child: SvgPicture.asset(
-                    bottomPos == 0 ? './assets/imgs/green_tube.svg' : './assets/imgs/blue_tube.svg',
+                    bottomPos == 0 ? './assets/imgs/${bottomImgPath}_tube.svg' : './assets/imgs/${topImgPath}_tube.svg',
                     fit: BoxFit.fill,
                   )
                 ),
@@ -310,10 +328,10 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                                 curve: Curves.easeInOut,
                               ),
                               SizedBox(width: 20),
-                              Text('Nicely Done!', style: TextStyle(fontSize: 120, color: Color(0xFFB1540F))),
+                              Text('Nicely Done!', style: TextStyle(fontSize: 90, color: Color(0xFFB1540F))),
                             ],
                           ),
-                          Text('You lasted', style: TextStyle(fontSize: 90, color: Color(0xFFBA7B33))),
+                          Text('You lasted', style: TextStyle(fontSize: 60, color: Color(0xFFBA7B33))),
                           Text(ref.read(gameTimerProvider), style: TextStyle(fontSize: 100, color: Colors.black)),
                           SizedBox(height: 40),
                           Column(
@@ -326,12 +344,26 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                                   elevation: 0,
                                   shadowColor: Colors.transparent,
-                                  padding: EdgeInsets.all(50)
+                                  padding: EdgeInsets.all(30)
                                 ),
                                 onPressed: () {
                                   restartGame();
                                 }, 
                                 child: Text('Try Again', style: TextStyle(fontSize: 50, color: Colors.white)),
+                              ),
+                              SizedBox(height: 20),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFFB1540F).withOpacity(0.25),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                                  elevation: 0,
+                                  shadowColor: Colors.transparent,
+                                  padding: EdgeInsets.all(30)
+                                ),
+                                onPressed: () {
+                                  onBackHomeGo();
+                                }, 
+                                child: Text('Back Home', style: TextStyle(fontSize: 40, color: Colors.black)),
                               ),
                             ],
                           )
@@ -368,6 +400,11 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
         side2SideCtrl!.forward();
       });
     }
+  }
+
+  void onBackHomeGo() {
+    ref.read(livesStateProvider.notifier).state = 3;
+    GoRouter.of(context).go('/');
   }
 
   void onCheckForCollision() {
@@ -408,6 +445,11 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   void restartGame() {
     
+    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+      'status': FlappyDashGameStatus.inGame.name,
+      'timestamp': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+
     ref.read(livesStateProvider.notifier).state = 3;
 
     setState(() {
@@ -415,6 +457,9 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       secondsIncrement = 4000;
       birdSpeedIncrement = 1000;  
     });
+
+    ctrl!.duration = Duration(milliseconds: secondsIncrement);
+    side2SideCtrl!.duration = Duration(milliseconds: birdSpeedIncrement);
 
     side2SideCtrl!.forward();
     
@@ -426,6 +471,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   void resetThings() {
 
     if (ref.read(livesStateProvider) <= 0) {
+
       ctrl!.removeListener(onCheckForCollision);
       ctrl!.reset();
       wasReset = true;
@@ -433,6 +479,11 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       ref.read(flappyStateProvider.notifier).state = FlappyStates.restart;
       gameTimer.cancel();
       difficultyTimer.cancel();
+
+      ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+          'status': FlappyDashGameStatus.endGame.name,
+          'timestamp': DateTime.now().toIso8601String(),
+        }, SetOptions(merge: true));
 
       setState(() {
         gameElementsVisible = false;
