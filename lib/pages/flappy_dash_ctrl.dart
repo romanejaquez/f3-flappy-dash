@@ -39,7 +39,7 @@ class _FlappyDashCtrlState extends ConsumerState<FlappyDashCtrl> {
         currentDisplayingWidget = TextButton(
           onPressed: () {
             ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-              'status': FlappyDashGameStatus.inGame.name,
+              'status': FlappyDashGameStatus.startGame.name,
               'timestamp': DateTime.now().toIso8601String(),
             }, SetOptions(merge: true));
           },
@@ -91,16 +91,13 @@ class _FlappyDashCtrlState extends ConsumerState<FlappyDashCtrl> {
           ),
         );
         break;
-      default:
-        currentDisplayingWidget = TextButton(
-          onPressed: () {
-            ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-              'status': FlappyDashGameStatus.inGame.name,
-              'timestamp': DateTime.now().toIso8601String(),
-            }, SetOptions(merge: true));
-          },
-          child: Text('START GAME!!')
+      case FlappyDashGameStatus.startGame:
+        currentDisplayingWidget = Center(
+          child: Text("Get ready!!!"),
         );
+        break;
+      default:
+        currentDisplayingWidget = SizedBox();
         break;
     }
 

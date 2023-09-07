@@ -39,7 +39,9 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   int secondsIncrement = 4000;
   int birdSpeedIncrement = 1000;
   int birdSpeedReverse = 500;
-  bool gameElementsVisible = true;
+  bool gameElementsVisible = false;
+  FlappyDashGameStatus gameStatus = FlappyDashGameStatus.none;
+
 
   double? bottomPos = 0;
   double? topPos;
@@ -53,44 +55,63 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
     ctrl = AnimationController(vsync: this,
       duration: Duration(milliseconds: secondsIncrement),
-    )..forward().whenComplete(() {
-      randomizeYPos();
-    });
-
-    startGameTimer();
-
-    startDifficultyTimer();
-
-    side2SideCtrl = AnimationController(vsync: this,
-      duration: Duration(milliseconds: birdSpeedIncrement),
-    )..forward();
+    );
 
     ctrl!.addListener(onCheckForCollision);
 
-    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-      'status': FlappyDashGameStatus.inGame.name,
-      'timestamp': DateTime.now().toIso8601String(),
-    }, SetOptions(merge: true));
+     side2SideCtrl = AnimationController(vsync: this,
+        duration: Duration(milliseconds: birdSpeedIncrement),
+      );
 
-    ref.read(flappyDashProvider(() {
-        triggerJump();
-      }
-    ));
+    Future.delayed(3.seconds, () {
+      ctrl!.forward().whenComplete(() {
+        randomizeYPos();
+      });
 
-    ref.read(flappyDashGameStatusProvider((FlappyDashGameStatusModel gameStatus) {
-        
-        if (gameStatus.status == FlappyDashGameStatus.tryAgain) {
+      startGameTimer();
+
+      startDifficultyTimer();
+
+      side2SideCtrl!.forward();
+      
+      ref.read(flappyDashProvider(() {
+          triggerJump();
+        }
+      ));
+
+      setState(() {
+        gameElementsVisible = true;
+      });
+    
+      randomizeYPos();
+
+      ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+        'status': FlappyDashGameStatus.inGame.name,
+        'timestamp': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+    });
+
+    ref.read(flappyDashGameStatusProvider((FlappyDashGameStatusModel gameStatusModel) {
+        gameStatus = gameStatusModel.status;
+
+        if (gameStatus == FlappyDashGameStatus.tryAgain) {
           setState(() {
             restartGame();
           });
         }
-        else if (gameStatus.status == FlappyDashGameStatus.backHome) {
+        else if (gameStatus == FlappyDashGameStatus.backHome) {
           onBackHomeGo();
+        }
+        else if (gameStatus == FlappyDashGameStatus.endGame) {
+          setState(() {
+            
+          });
         }
       }
     ));
-  
-    randomizeYPos();
+
+    
+
   }
 
   void startGameTimer() {
@@ -177,18 +198,21 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
             Align(
               alignment: Alignment.topRight,
               child: Consumer(builder: (context, ref, child) {
-                  return Padding(
-                    padding: const EdgeInsets.all(50),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 150, height: 150,
-                          child: FlutterDashWhite()),
-                        Text(ref.watch(livesStateProvider).toString(),
-                          style: TextStyle(fontSize: 140, color: Colors.white),
-                        ),
-                      ],
+                  return Visibility(
+                    visible: gameElementsVisible,
+                    child: Padding(
+                      padding: const EdgeInsets.all(50),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 150, height: 150,
+                            child: FlutterDashWhite()),
+                          Text(ref.watch(livesStateProvider).toString(),
+                            style: TextStyle(fontSize: 140, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   );
               },),
@@ -197,22 +221,25 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
             Align(
               alignment: Alignment.topLeft,
               child: Consumer(builder: (context, ref, child) {
-                  return Container(
-                    padding: const EdgeInsets.all(30),
-                    margin: const EdgeInsets.all(30),
-                    width: 400,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.timelapse_outlined, color: Colors.white, size: 50),
-                        SizedBox(width: 10),
-                        Text(ref.watch(gameTimerProvider).toString(),
-                          style: TextStyle(fontSize: 50, color: Colors.white),
-                        ),
-                      ],
+                  return Visibility(
+                    visible: gameElementsVisible,
+                    child: Container(
+                      padding: const EdgeInsets.all(30),
+                      margin: const EdgeInsets.all(30),
+                      width: 400,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.timelapse_outlined, color: Colors.white, size: 50),
+                          SizedBox(width: 10),
+                          Text(ref.watch(gameTimerProvider).toString(),
+                            style: TextStyle(fontSize: 50, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   );
               },),
@@ -295,7 +322,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
             Positioned.fill(
               child: Visibility(
-                visible: !gameElementsVisible,
+                visible: gameStatus == FlappyDashGameStatus.endGame,
                 child: Container(
                   color: Colors.black.withOpacity(0.5),
                   alignment: Alignment.center,
@@ -442,30 +469,38 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   }
 
   void restartGame() {
+
+     ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+        'status': FlappyDashGameStatus.startGame.name,
+        'timestamp': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+
+      ref.read(livesStateProvider.notifier).state = 3;
+
+
+      ctrl!.duration = Duration(milliseconds: secondsIncrement);
+      side2SideCtrl!.duration = Duration(milliseconds: birdSpeedIncrement);
     
-    Future.delayed(500.milliseconds, () {
-      ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-      'status': FlappyDashGameStatus.inGame.name,
-      'timestamp': DateTime.now().toIso8601String(),
-    }, SetOptions(merge: true));
+    Future.delayed(3.seconds, () {
+        ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+          'status': FlappyDashGameStatus.inGame.name,
+          'timestamp': DateTime.now().toIso8601String(),
+        }, SetOptions(merge: true));
+
+        setState(() {
+          gameElementsVisible = true;
+          secondsIncrement = 4000;
+          birdSpeedIncrement = 1000;  
+        });
+
+        side2SideCtrl!.forward();
+        
+        startGameTimer();
+        startDifficultyTimer();
+        startThings();
     });
 
-    ref.read(livesStateProvider.notifier).state = 3;
-
-    setState(() {
-      gameElementsVisible = true;
-      secondsIncrement = 4000;
-      birdSpeedIncrement = 1000;  
-    });
-
-    ctrl!.duration = Duration(milliseconds: secondsIncrement);
-    side2SideCtrl!.duration = Duration(milliseconds: birdSpeedIncrement);
-
-    side2SideCtrl!.forward();
     
-    startGameTimer();
-    startDifficultyTimer();
-    startThings();
   }
 
   void resetThings() {

@@ -17,8 +17,9 @@ class FlappyDashGameStatusModel {
 }
 
 enum FlappyDashGameStatus {
+  none,
   inGame,
-  startScreen,
+  startGame,
   leaderboards,
   endGame,
   tryAgain,

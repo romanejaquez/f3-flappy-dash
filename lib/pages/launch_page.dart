@@ -35,7 +35,7 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
   Widget build(BuildContext context) {
 
     ref.read(flappyDashGameStatusProvider((FlappyDashGameStatusModel gameStatus) {
-      if (gameStatus.status == FlappyDashGameStatus.inGame) {
+      if (gameStatus.status == FlappyDashGameStatus.startGame) {
           GoRouter.of(context).go('/game');
         }
       }
