@@ -25,10 +25,10 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
   void initState() {
     super.initState();
     
-    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-      'status': FlappyDashGameStatus.startScreen.name,
-      'timestamp': DateTime.now().toIso8601String(),
-    }, SetOptions(merge: true));
+    // ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+    //   'status': FlappyDashGameStatus.startScreen.name,
+    //   'timestamp': DateTime.now().toIso8601String(),
+    // }, SetOptions(merge: true));
   }
 
   @override
@@ -160,25 +160,28 @@ class _LaunchPageState extends ConsumerState<LaunchPage> {
                       ],
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      GoRouter.of(context).go('/game');
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        left: 50, top: 20),
-                      child: SvgPicture.asset(
-                        './assets/imgs/startbtn.svg',
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        GoRouter.of(context).go('/game');
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(
+                          left: 50, top: 20),
+                        child: SvgPicture.asset(
+                          './assets/imgs/startbtn.svg',
+                        ),
+                      ).animate(
+                        onComplete: (ctrl) {
+                          ctrl.repeat(reverse: true);
+                        }
+                      )
+                      .scaleXY(
+                        begin: 1, end: 1.125,
+                        duration: 1.seconds,
+                        curve: Curves.easeInOut,
                       ),
-                    ).animate(
-                      onComplete: (ctrl) {
-                        ctrl.repeat(reverse: true);
-                      }
-                    )
-                    .scaleXY(
-                      begin: 1, end: 1.125,
-                      duration: 1.seconds,
-                      curve: Curves.easeInOut,
                     ),
                   ),
                 ],

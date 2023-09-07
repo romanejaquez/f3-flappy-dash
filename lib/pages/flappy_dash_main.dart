@@ -89,6 +89,8 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
         }
       }
     ));
+  
+    randomizeYPos();
   }
 
   void startGameTimer() {
@@ -140,12 +142,8 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   @override
   Widget build(BuildContext context) {
 
-    Future.delayed(Duration.zero, () {
-      ref.read(flappyStateProvider.notifier).state = FlappyStates.game;
-    });
-
     //itemHeight = (MediaQuery.sizeOf(context).height / 100).round() - 3;
-    randomizeYPos();
+    
 
     return WillPopScope(
       onWillPop:() {
@@ -404,7 +402,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   void onBackHomeGo() {
     ref.read(livesStateProvider.notifier).state = 3;
-    GoRouter.of(context).go('/');
+    GoRouter.of(context).pop();
   }
 
   void onCheckForCollision() {
@@ -445,10 +443,12 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   void restartGame() {
     
-    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+    Future.delayed(500.milliseconds, () {
+      ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
       'status': FlappyDashGameStatus.inGame.name,
       'timestamp': DateTime.now().toIso8601String(),
     }, SetOptions(merge: true));
+    });
 
     ref.read(livesStateProvider.notifier).state = 3;
 
@@ -476,7 +476,6 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       ctrl!.reset();
       wasReset = true;
       side2SideCtrl!.reset();
-      ref.read(flappyStateProvider.notifier).state = FlappyStates.restart;
       gameTimer.cancel();
       difficultyTimer.cancel();
 

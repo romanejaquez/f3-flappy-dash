@@ -35,7 +35,7 @@ class _FlappyDashCtrlState extends ConsumerState<FlappyDashCtrl> {
     Widget currentDisplayingWidget = const SizedBox.shrink();
 
     switch(gameStatusValue) {
-      case FlappyDashGameStatus.startScreen:
+      case FlappyDashGameStatus.backHome:
         currentDisplayingWidget = TextButton(
           onPressed: () {
             ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
@@ -91,7 +91,17 @@ class _FlappyDashCtrlState extends ConsumerState<FlappyDashCtrl> {
           ),
         );
         break;
-      default: 
+      default:
+        currentDisplayingWidget = TextButton(
+          onPressed: () {
+            ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+              'status': FlappyDashGameStatus.inGame.name,
+              'timestamp': DateTime.now().toIso8601String(),
+            }, SetOptions(merge: true));
+          },
+          child: Text('START GAME!!')
+        );
+        break;
     }
 
     return Scaffold(

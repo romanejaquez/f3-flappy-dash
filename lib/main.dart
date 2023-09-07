@@ -58,23 +58,30 @@ class AppRoutes {
     initialLocation: '/',
     routes: [
       GoRoute(
+        routes: [
+          GoRoute(
+            name: 'game',
+            path: 'game',
+            builder: (context, state) {
+                return const FlappyDashMain();
+            },
+          ),
+          
+        ],
         path: '/',
         builder: (context, state) {
             return const LaunchPage();
         },
       ),
+
       GoRoute(
-        path: '/game',
-        builder: (context, state) {
-            return const FlappyDashMain();
-        },
-      ),
-      GoRoute(
+        name: 'ctrl',
         path: '/ctrl',
         builder: (context, state) {
             return const FlappyDashCtrl();
         },
       ),
+      
     ]
   );
 }
