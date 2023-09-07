@@ -7,6 +7,7 @@ import 'package:flappy_dash/models/flappydashgamestatus.model.dart';
 import 'package:flappy_dash/providers.dart';
 import 'package:flappy_dash/utils.dart';
 import 'package:flappy_dash/widgets/flappy_bg_gradient.dart';
+import 'package:flappy_dash/widgets/flappy_countdown.dart';
 import 'package:flappy_dash/widgets/flappy_dash_bg.dart';
 import 'package:flappy_dash/widgets/flutter_dash_white.dart';
 import 'package:flappy_dash/widgets/flutter_game_dash.dart';
@@ -40,8 +41,8 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   int birdSpeedIncrement = 1000;
   int birdSpeedReverse = 500;
   bool gameElementsVisible = false;
-  FlappyDashGameStatus gameStatus = FlappyDashGameStatus.none;
-
+  bool showCountdown = false;
+  FlappyDashGameStatus gameStatus = FlappyDashGameStatus.startGame;
 
   double? bottomPos = 0;
   double? topPos;
@@ -57,13 +58,21 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       duration: Duration(milliseconds: secondsIncrement),
     );
 
-    ctrl!.addListener(onCheckForCollision);
-
      side2SideCtrl = AnimationController(vsync: this,
-        duration: Duration(milliseconds: birdSpeedIncrement),
-      );
+      duration: Duration(milliseconds: birdSpeedIncrement),
+    );
 
-    Future.delayed(3.seconds, () {
+    showCountdown = true;
+    Future.delayed(4.seconds, () {
+      setState(() {
+        showCountdown = false;
+      });
+    });
+
+    Future.delayed(3.5.seconds, () {
+
+      ctrl!.addListener(onCheckForCollision);
+      
       ctrl!.forward().whenComplete(() {
         randomizeYPos();
       });
@@ -102,7 +111,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
         else if (gameStatus == FlappyDashGameStatus.backHome) {
           onBackHomeGo();
         }
-        else if (gameStatus == FlappyDashGameStatus.endGame) {
+        else if (gameStatus == FlappyDashGameStatus.endGame || gameStatus == FlappyDashGameStatus.startGame) {
           setState(() {
             
           });
@@ -310,6 +319,17 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                 ),
               ),
             ),
+
+            Visibility(
+              visible: showCountdown,
+              child: Center(
+                child: SizedBox(
+                  width: MediaQuery.sizeOf(context).width * 0.75,
+                  height: MediaQuery.sizeOf(context).height * 0.75,
+                  child: FlappyDashCountdown()
+                ),
+              ),
+            ),
             
             GestureDetector(
               onTap: () {
@@ -475,13 +495,19 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
         'timestamp': DateTime.now().toIso8601String(),
       }, SetOptions(merge: true));
 
-      ref.read(livesStateProvider.notifier).state = 3;
+      showCountdown = true;
+      Future.delayed(4.seconds, () {
+        setState(() {
+          showCountdown = false;
+        });
+      });
 
+      ref.read(livesStateProvider.notifier).state = 3;
 
       ctrl!.duration = Duration(milliseconds: secondsIncrement);
       side2SideCtrl!.duration = Duration(milliseconds: birdSpeedIncrement);
     
-    Future.delayed(3.seconds, () {
+    Future.delayed(3.5.seconds, () {
         ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
           'status': FlappyDashGameStatus.inGame.name,
           'timestamp': DateTime.now().toIso8601String(),
