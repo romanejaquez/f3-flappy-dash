@@ -16,3 +16,9 @@ enum FlappyBg {
   flowers,
   clouds,
 }
+
+enum ButtonOptions {
+  start,
+  again,
+  home,
+}

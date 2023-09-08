@@ -1,6 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flappy_dash/models/flappydashgamestatus.model.dart';
 import 'package:flappy_dash/providers.dart';
+import 'package:flappy_dash/utils.dart';
+import 'package:flappy_dash/widgets/flappy_bg_gradient.dart';
+import 'package:flappy_dash/widgets/flappy_dash_basic_btn.dart';
+import 'package:flappy_dash/widgets/flappy_dash_ctrl_getready.dart';
+import 'package:flappy_dash/widgets/flappy_jump_btn.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,64 +41,69 @@ class _FlappyDashCtrlState extends ConsumerState<FlappyDashCtrl> {
 
     switch(gameStatusValue) {
       case FlappyDashGameStatus.backHome:
-        currentDisplayingWidget = TextButton(
-          onPressed: () {
-            ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-              'status': FlappyDashGameStatus.startGame.name,
-              'timestamp': DateTime.now().toIso8601String(),
-            }, SetOptions(merge: true));
-          },
-          child: Text('START GAME!!')
-        );
-        break;
-
-      case FlappyDashGameStatus.endGame:
-        currentDisplayingWidget = Column(
-          children: [
-            TextButton(
-              onPressed: () {
-                ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-                  'status': FlappyDashGameStatus.tryAgain.name,
-                  'timestamp': DateTime.now().toIso8601String(),
-                }, SetOptions(merge: true));
-              },
-              child: Text('Try Again')
-            ),
-            TextButton(
-              onPressed: () {
-                ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-                  'status': FlappyDashGameStatus.backHome.name,
-                  'timestamp': DateTime.now().toIso8601String(),
-                }, SetOptions(merge: true));
-              },
-              child: Text('Back Home')
-            )
-          ],
-        );
-        break;
-      case FlappyDashGameStatus.inGame:
-        currentDisplayingWidget = GestureDetector(
-          onTap: isGameButtonEnabled ? () {
-            ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-turns').set({
-              'timestamp': DateTime.now().toIso8601String(),
-            }, SetOptions(merge: true));
-          } : null,
-          child: Opacity(
-            opacity: isGameButtonEnabled ? 1 : 0.5,
-            child: Container(
-              padding: const EdgeInsets.all(50),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              child: Text('Press!!!'),
-            ),
+        currentDisplayingWidget = 
+        FractionallySizedBox(
+          widthFactor: 0.8,
+          heightFactor: 0.5,
+          child: FlappyDashBasicBtn(
+            btnOption: ButtonOptions.start,
+            onPress: () {
+              ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+                'status': FlappyDashGameStatus.startGame.name,
+                'timestamp': DateTime.now().toIso8601String(),
+              }, SetOptions(merge: true));
+            }
           ),
         );
         break;
+      case FlappyDashGameStatus.endGame:
+        currentDisplayingWidget = Padding(
+          padding: const EdgeInsets.all(80.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: FlappyDashBasicBtn(
+                  btnOption: ButtonOptions.again,
+                  onPress: () {
+                    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+                      'status': FlappyDashGameStatus.tryAgain.name,
+                      'timestamp': DateTime.now().toIso8601String(),
+                    }, SetOptions(merge: true));
+                  }
+                ),
+              ),
+              Expanded(
+                child: FlappyDashBasicBtn(
+                  btnOption: ButtonOptions.home,
+                  onPress: () {
+                    ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+                      'status': FlappyDashGameStatus.backHome.name,
+                      'timestamp': DateTime.now().toIso8601String(),
+                    }, SetOptions(merge: true));
+                  }
+                ),
+              ),
+            ],
+          ),
+        );
+        break;
+      case FlappyDashGameStatus.inGame:
+        currentDisplayingWidget = FractionallySizedBox(
+          widthFactor: 0.8,
+          heightFactor: 0.8,
+          child: FlappyJumpBtn(onPress: () {
+            ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-turns').set({
+              'timestamp': DateTime.now().toIso8601String(),
+            }, SetOptions(merge: true));
+          }),
+        );
+        break;
       case FlappyDashGameStatus.startGame:
-        currentDisplayingWidget = Center(
-          child: Text("Get ready!!!"),
+        currentDisplayingWidget = FractionallySizedBox(
+          widthFactor: 0.8,
+          heightFactor: 0.8,
+          child: FlappyDashGetReady()
         );
         break;
       default:
@@ -102,8 +112,13 @@ class _FlappyDashCtrlState extends ConsumerState<FlappyDashCtrl> {
     }
 
     return Scaffold(
-      body: Center(
-        child: currentDisplayingWidget,
+      body: Stack(
+        children: [
+          const FlappyBgGradient(),
+          Center(
+            child: currentDisplayingWidget,
+          ),
+        ],
       ),
     );
   }
