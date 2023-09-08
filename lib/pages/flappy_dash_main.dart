@@ -517,7 +517,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
           secondsIncrement = 4000;
           birdSpeedIncrement = 1000;  
         });
-
+    
         side2SideCtrl!.forward();
         
         startGameTimer();

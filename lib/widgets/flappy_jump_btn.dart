@@ -37,17 +37,15 @@ class _FlappyJumpBtnState extends State<FlappyJumpBtn> {
     ctrl = StateMachineController.fromArtboard(artboard, 'jumpbtn')!;
     artboard.addController(ctrl);
     inputTrigger = ctrl.findSMI('press')! as SMITrigger;
-
-    setState(() {
-      isInitialized = true;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
+      onTapDown:(details) {
         inputTrigger.fire();
+      },
+      onTap: () {
         widget.onPress();
       },
       child: anim,
