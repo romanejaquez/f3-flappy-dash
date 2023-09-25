@@ -8,6 +8,8 @@ import 'package:flappy_dash/utils.dart';
 import 'package:flappy_dash/widgets/flappy_bg_gradient.dart';
 import 'package:flappy_dash/widgets/flappy_countdown.dart';
 import 'package:flappy_dash/widgets/flappy_dash_bg.dart';
+import 'package:flappy_dash/widgets/flappy_dash_confetti.dart';
+import 'package:flappy_dash/widgets/flappy_dash_qrcode.dart';
 import 'package:flappy_dash/widgets/flutter_dash_white.dart';
 import 'package:flappy_dash/widgets/flutter_game_dash.dart';
 import 'package:flutter/material.dart';
@@ -42,12 +44,13 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   bool gameElementsVisible = false;
   bool showCountdown = false;
   FlappyDashGameStatus gameStatus = FlappyDashGameStatus.startGame;
+  bool qrCodeThresholdExceeded = false;
+  bool showQRCode = false;
 
   double? bottomPos = 0;
   double? topPos;
   String topImgPath = 'blue';
   String bottomImgPath = 'green';
-
 
   @override
   void initState() {
@@ -77,9 +80,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       });
 
       startGameTimer();
-
       startDifficultyTimer();
-
       side2SideCtrl!.forward();
       
       ref.read(flappyDashProvider(() {
@@ -111,14 +112,19 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
           onBackHomeGo();
         }
         else if (gameStatus == FlappyDashGameStatus.endGame || gameStatus == FlappyDashGameStatus.startGame) {
+          
+          if (gameStatus == FlappyDashGameStatus.endGame && ref.read(qrcodeThresholdProvider)) {
+            setState(() {
+              showQRCode = true;
+            });
+          }
+          
           setState(() {
             
           });
         }
       }
     ));
-
-    
 
   }
 
@@ -129,6 +135,10 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
       ref.read(gameTimerProvider.notifier).state = 
         '${DateFormat('mm').format(dt)}:${DateFormat('ss').format(dt)}:${(dt.millisecond).toStringAsFixed(0)}';
+
+      if (dt.second > 0 && dt.second % 30 == 0) {
+        ref.read(qrcodeThresholdProvider.notifier).state = true;
+      }
     });
   }
 
@@ -171,12 +181,10 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   @override
   Widget build(BuildContext context) {
 
-    //itemHeight = (MediaQuery.sizeOf(context).height / 100).round() - 3;
-    
-
     return WillPopScope(
       onWillPop:() {
-
+        
+        ref.read(qrcodeThresholdProvider.notifier).state = false;
         ref.read(livesStateProvider.notifier).state = 3;
         return Future.value(true);
       },
@@ -325,7 +333,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                 child: SizedBox(
                   width: MediaQuery.sizeOf(context).width * 0.75,
                   height: MediaQuery.sizeOf(context).height * 0.75,
-                  child: FlappyDashCountdown()
+                  child: const FlappyDashCountdown()
                 ),
               ),
             ),
@@ -430,6 +438,31 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
                   curve: Curves.easeInOut,
                 ),
               ),
+            ),
+
+            Positioned(
+              bottom: -450,
+              right: 0,
+              top: 0,
+              child: SizedBox(
+                width: MediaQuery.sizeOf(context).width / 2,
+                child: const FlappyDashConfetti(),
+              )
+            ),
+
+            Align(
+              alignment: Alignment.topLeft,
+              child: Container(
+                margin: const EdgeInsets.all(10),
+                child: Visibility(
+                  visible: showQRCode,
+                  child: const SizedBox(
+                    width: 350,
+                    height: 350,
+                    child: FlappyDashQRCode()
+                  ),
+                ),
+              ),
             )
           ],
         ),
@@ -448,6 +481,8 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   void onBackHomeGo() {
     ref.read(livesStateProvider.notifier).state = 3;
+    ref.read(qrcodeThresholdProvider.notifier).state = false;
+
     GoRouter.of(context).pop();
   }
 
@@ -459,7 +494,7 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       return;
     }
 
-    if (square1.currentContext == null && square2.currentContext == null) {
+    if (square1 == null && square2 == null && square1.currentContext == null && square2.currentContext == null) {
       return;
     }
 
@@ -489,6 +524,10 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
 
   void restartGame() {
 
+     setState(() {
+       showQRCode = false;
+     });
+
      ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
         'status': FlappyDashGameStatus.startGame.name,
         'timestamp': DateTime.now().toIso8601String(),
@@ -502,36 +541,40 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
       });
 
       ref.read(livesStateProvider.notifier).state = 3;
-
+      ref.read(qrcodeThresholdProvider.notifier).state = false;
+      
+      ctrl!.reset();
+      secondsIncrement = 4000;
       ctrl!.duration = Duration(milliseconds: secondsIncrement);
       side2SideCtrl!.duration = Duration(milliseconds: birdSpeedIncrement);
     
     Future.delayed(3.5.seconds, () {
-        ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
-          'status': FlappyDashGameStatus.inGame.name,
-          'timestamp': DateTime.now().toIso8601String(),
-        }, SetOptions(merge: true));
+      ref.read(dbProvider).collection('flappy-dash-events').doc('flappy-dash-game-status').set({
+        'status': FlappyDashGameStatus.inGame.name,
+        'timestamp': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
 
-        setState(() {
-          gameElementsVisible = true;
-          secondsIncrement = 4000;
-          birdSpeedIncrement = 1000;  
-        });
-    
+      setState(() {
+        gameElementsVisible = true;
+        secondsIncrement = 4000;
+        birdSpeedIncrement = 1000;  
+      });
+
+      if (side2SideCtrl != null)
+      {
         side2SideCtrl!.forward();
-        
-        startGameTimer();
-        startDifficultyTimer();
-        startThings();
+      }
+      
+      startGameTimer();
+      startDifficultyTimer();
+      startThings();
     });
-
-    
   }
 
   void resetThings() {
 
     if (ref.read(livesStateProvider) <= 0) {
-
+      
       ctrl!.removeListener(onCheckForCollision);
       ctrl!.reset();
       wasReset = true;
@@ -558,7 +601,6 @@ class FlappyDashMainState extends ConsumerState<FlappyDashMain> with TickerProvi
   }
 
   void startThings() {
-
     if (wasReset) {
       ctrl!.addListener(onCheckForCollision);
       wasReset = false;

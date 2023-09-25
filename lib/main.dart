@@ -55,6 +55,7 @@ class AppRoutes {
   
   static final router = GoRouter(
     routerNeglect: true,
+    //initialLocation: '/ctrl',
     initialLocation: '/',
     routes: [
       GoRoute(

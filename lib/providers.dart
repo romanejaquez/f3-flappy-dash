@@ -37,3 +37,5 @@ final livesStateProvider = StateProvider<int>((ref) {
 final gameTimerProvider = StateProvider<String>((ref) {
   return "00:00";
 });
+
+final qrcodeThresholdProvider = StateProvider.autoDispose<bool>((ref) => false);
